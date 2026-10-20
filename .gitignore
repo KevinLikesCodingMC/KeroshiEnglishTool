@@ -1,0 +1,11 @@
+# IDEA
+.idea/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+
+# Django
+db.sqlite3
