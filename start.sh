@@ -27,5 +27,8 @@ echo "Using Python: $("$python_exe" -c 'import sys; print(sys.executable)')"
 echo "Applying database migrations..."
 "$python_exe" manage.py migrate --noinput
 
+echo "Collecting static files..."
+"$python_exe" manage.py collectstatic --noinput
+
 echo "Starting Django at http://$host_address:$port/"
 exec "$python_exe" manage.py runserver "$host_address:$port"

@@ -29,6 +29,10 @@ echo Applying database migrations...
 "%PYTHON_EXE%" manage.py migrate --noinput
 if errorlevel 1 exit /b %errorlevel%
 
+echo Collecting static files...
+"%PYTHON_EXE%" manage.py collectstatic --noinput
+if errorlevel 1 exit /b %errorlevel%
+
 echo Starting Django at http://%HOST_ADDRESS%:%PORT%/
 "%PYTHON_EXE%" manage.py runserver "%HOST_ADDRESS%:%PORT%"
 exit /b %errorlevel%
