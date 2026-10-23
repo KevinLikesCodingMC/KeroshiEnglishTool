@@ -1,0 +1,4 @@
+Django>=6.1
+django-environ>=0.12
+kokoro-onnx>=0.6
+soundfile>=0.13

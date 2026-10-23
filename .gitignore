@@ -5,6 +5,7 @@
 .env
 
 # Python
+.venv/
 __pycache__/
 
 # Django
