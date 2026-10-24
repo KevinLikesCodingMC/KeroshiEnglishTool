@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import onnxruntime as ort
 import soundfile
 from django.conf import settings
 from kokoro_onnx import Kokoro
@@ -10,8 +11,22 @@ def get_engine():
 	global _engine
 
 	if _engine is None:
-		_engine = Kokoro(
+		session_options = ort.SessionOptions()
+		session_options.intra_op_num_threads = settings.KOKORO_CPU_THREADS
+		session_options.inter_op_num_threads = 1
+		session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+		session_options.add_session_config_entry(
+			"session.intra_op.allow_spinning",
+			"0",
+		)
+
+		session = ort.InferenceSession(
 			str(settings.KOKORO_MODEL_PATH),
+			sess_options = session_options,
+			providers = ["CPUExecutionProvider"],
+		)
+		_engine = Kokoro.from_session(
+			session,
 			str(settings.KOKORO_VOICES_PATH),
 		)
 

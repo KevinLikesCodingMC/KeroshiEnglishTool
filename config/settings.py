@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -131,6 +132,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 KOKORO_MODEL_PATH = BASE_DIR / "models" / "kokoro" / "kokoro-v1.0.onnx"
 KOKORO_VOICES_PATH = BASE_DIR / "models" / "kokoro" / "voices-v1.0.bin"
+KOKORO_CPU_THREADS = env.int("KOKORO_CPU_THREADS", default = 2)
+
+if KOKORO_CPU_THREADS < 1:
+	raise ImproperlyConfigured("KOKORO_CPU_THREADS must be at least 1.")
 
 
 # Email
