@@ -1,8 +1,10 @@
 import json
+import shutil
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -87,7 +89,10 @@ class ListeningApiTests(TestCase):
 			{
 				"id": job.pk,
 				"status": TTSJob.Status.COMPLETED,
-				"audio_url": job.audio_file.url,
+				"audio_url": reverse(
+					"listening:job-audio",
+					args = [job.pk],
+				),
 				"error_message": "",
 			},
 		)
@@ -99,6 +104,34 @@ class ListeningApiTests(TestCase):
 
 		self.assertEqual(response.status_code, 404)
 		self.assertEqual(response.json(), {"error": "Job not found."})
+
+
+@override_settings(MEDIA_ROOT = TEST_MEDIA_ROOT)
+class ListeningAudioTests(TestCase):
+	def tearDown(self):
+		shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors = True)
+
+	def test_audio_endpoint_supports_byte_ranges(self):
+		job = TTSJob.objects.create(
+			text = "Hello world",
+			status = TTSJob.Status.COMPLETED,
+			audio_file = SimpleUploadedFile(
+				"example.wav",
+				b"0123456789",
+				content_type = "audio/wav",
+			),
+		)
+
+		response = self.client.get(
+			reverse("listening:job-audio", args = [job.pk]),
+			HTTP_RANGE = "bytes=2-5",
+		)
+
+		self.assertEqual(response.status_code, 206)
+		self.assertEqual(response["Accept-Ranges"], "bytes")
+		self.assertEqual(response["Content-Range"], "bytes 2-5/10")
+		self.assertEqual(response["Content-Length"], "4")
+		self.assertEqual(b"".join(response.streaming_content), b"2345")
 
 
 class TTSWorkerTests(TestCase):
