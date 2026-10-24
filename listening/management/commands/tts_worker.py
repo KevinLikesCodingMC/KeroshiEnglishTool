@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -12,12 +13,37 @@ from listening.services.kokoro_tts import generate_audio
 class Command(BaseCommand):
 	help = "Process one queued TTS job"
 
+	def add_arguments(self, parser):
+		parser.add_argument(
+			"--watch",
+			action = "store_true",
+			help = "Keep polling for queued TTS jobs",
+		)
+
 	def handle(self, * args, ** options):
+		if options["watch"]:
+			self._watch()
+			return
+
+		self._process_next()
+
+	def _watch(self):
+		self.stdout.write("TTS worker started.")
+
+		try:
+			while True:
+				if not self._process_next(show_empty_message = False):
+					time.sleep(2)
+		except KeyboardInterrupt:
+			self.stdout.write("TTS worker stopped.")
+
+	def _process_next(self, show_empty_message = True):
 		job = self._claim_job()
 
 		if job is None:
-			self.stdout.write("No queued TTS jobs.")
-			return
+			if show_empty_message:
+				self.stdout.write("No queued TTS jobs.")
+			return False
 
 		audio_name = f"tts/{job.pk}.wav"
 		output_path = Path(settings.MEDIA_ROOT) / audio_name
@@ -37,7 +63,7 @@ class Command(BaseCommand):
 				update_fields = ["status", "error_message", "completed_at"],
 			)
 			self.stderr.write(self.style.ERROR(f"TTS job #{job.pk} failed: {error}"))
-			return
+			return True
 
 		job.status = TTSJob.Status.COMPLETED
 		job.audio_file.name = audio_name
@@ -52,6 +78,7 @@ class Command(BaseCommand):
 			],
 		)
 		self.stdout.write(self.style.SUCCESS(f"TTS job #{job.pk} completed."))
+		return True
 
 	def _claim_job(self):
 		with transaction.atomic():
