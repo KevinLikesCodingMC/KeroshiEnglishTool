@@ -1,14 +1,104 @@
+import json
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from django.test import TestCase, override_settings
 from django.core.management import call_command
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from .models import TTSJob
 
 
 TEST_MEDIA_ROOT = Path("test-media")
+
+
+class ListeningApiTests(TestCase):
+	def test_index_renders_api_frontend(self):
+		response = self.client.get(reverse("listening:index"))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, reverse("listening:job-create"))
+		self.assertNotContains(response, "window.location.reload()")
+
+	def test_create_job_returns_accepted_response(self):
+		response = self.client.post(
+			reverse("listening:job-create"),
+			data = json.dumps(
+				{
+					"text": "  Hello world  ",
+					"speed": 1.5,
+				},
+			),
+			content_type = "application/json",
+		)
+
+		job = TTSJob.objects.get()
+		self.assertEqual(response.status_code, 202)
+		self.assertEqual(
+			response.json(),
+			{
+				"id": job.pk,
+				"status": TTSJob.Status.QUEUED,
+				"status_url": reverse(
+					"listening:job-status",
+					args = [job.pk],
+				),
+			},
+		)
+		self.assertEqual(job.text, "Hello world")
+		self.assertEqual(job.speed, 1.5)
+
+	def test_create_job_rejects_invalid_input(self):
+		invalid_payloads = (
+			{"text": "", "speed": 1.0},
+			{"text": "Hello", "speed": 0.4},
+			{"text": "Hello", "speed": 2.1},
+			{"text": "Hello", "speed": "fast"},
+		)
+
+		for payload in invalid_payloads:
+			with self.subTest(payload = payload):
+				response = self.client.post(
+					reverse("listening:job-create"),
+					data = json.dumps(payload),
+					content_type = "application/json",
+				)
+
+				self.assertEqual(response.status_code, 400)
+				self.assertIn("error", response.json())
+
+		self.assertFalse(TTSJob.objects.exists())
+
+	def test_job_status_returns_completed_audio(self):
+		job = TTSJob.objects.create(
+			text = "Hello world",
+			status = TTSJob.Status.COMPLETED,
+			audio_file = "tts/example.wav",
+		)
+
+		response = self.client.get(
+			reverse("listening:job-status", args = [job.pk]),
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(
+			response.json(),
+			{
+				"id": job.pk,
+				"status": TTSJob.Status.COMPLETED,
+				"audio_url": job.audio_file.url,
+				"error_message": "",
+			},
+		)
+
+	def test_job_status_returns_json_404(self):
+		response = self.client.get(
+			reverse("listening:job-status", args = [999]),
+		)
+
+		self.assertEqual(response.status_code, 404)
+		self.assertEqual(response.json(), {"error": "Job not found."})
 
 
 class TTSWorkerTests(TestCase):
