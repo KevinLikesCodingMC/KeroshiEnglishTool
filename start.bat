@@ -33,6 +33,9 @@ echo Collecting static files...
 "%PYTHON_EXE%" manage.py collectstatic --noinput
 if errorlevel 1 exit /b %errorlevel%
 
+echo Starting TTS worker...
+start "TTS Worker" /b "%PYTHON_EXE%" manage.py tts_worker --watch
+
 echo Starting Django at http://%HOST_ADDRESS%:%PORT%/
 "%PYTHON_EXE%" manage.py runserver "%HOST_ADDRESS%:%PORT%"
 exit /b %errorlevel%

@@ -30,5 +30,18 @@ echo "Applying database migrations..."
 echo "Collecting static files..."
 "$python_exe" manage.py collectstatic --noinput
 
+echo "Starting TTS worker..."
+"$python_exe" manage.py tts_worker --watch &
+worker_pid=$!
+
+cleanup() {
+	trap - EXIT HUP INT TERM
+	echo "Stopping TTS worker..."
+	kill "$worker_pid" 2>/dev/null || true
+	wait "$worker_pid" 2>/dev/null || true
+}
+
+trap cleanup EXIT HUP INT TERM
+
 echo "Starting Django at http://$host_address:$port/"
-exec "$python_exe" manage.py runserver "$host_address:$port"
+"$python_exe" manage.py runserver "$host_address:$port"
