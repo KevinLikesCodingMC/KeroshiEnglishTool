@@ -4,6 +4,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
@@ -16,7 +17,49 @@ from .services.kokoro_tts import generate_audio
 TEST_MEDIA_ROOT = Path("test-media")
 
 
-class ListeningApiTests(TestCase):
+class StaffAuthenticatedTestCase(TestCase):
+	@classmethod
+	def setUpTestData(cls):
+		cls.staff_user = get_user_model().objects.create_user(
+			username = "staff",
+			password = "test-password",
+			is_staff = True,
+		)
+
+	def setUp(self):
+		self.client.force_login(self.staff_user)
+
+
+class ListeningAccessTests(TestCase):
+	def test_anonymous_user_is_redirected_to_admin_login_for_every_endpoint(self):
+		requests = (
+			("get", reverse("listening:index"), {}),
+			("post", reverse("listening:job-create"), {}),
+			("get", reverse("listening:job-status", args = [1]), {}),
+			("get", reverse("listening:job-audio", args = [1]), {}),
+		)
+
+		for method, url, kwargs in requests:
+			with self.subTest(url = url):
+				response = getattr(self.client, method)(url, **kwargs)
+
+				self.assertEqual(response.status_code, 302)
+				self.assertTrue(response.url.startswith("/admin/login/?next="))
+
+	def test_logged_in_non_staff_user_is_redirected_to_admin_login(self):
+		user = get_user_model().objects.create_user(
+			username = "regular-user",
+			password = "test-password",
+		)
+		self.client.force_login(user)
+
+		response = self.client.get(reverse("listening:index"))
+
+		self.assertEqual(response.status_code, 302)
+		self.assertTrue(response.url.startswith("/admin/login/?next="))
+
+
+class ListeningApiTests(StaffAuthenticatedTestCase):
 	def test_index_renders_api_frontend(self):
 		response = self.client.get(reverse("listening:index"))
 
@@ -126,7 +169,7 @@ class ListeningApiTests(TestCase):
 
 
 @override_settings(MEDIA_ROOT = TEST_MEDIA_ROOT)
-class ListeningAudioTests(TestCase):
+class ListeningAudioTests(StaffAuthenticatedTestCase):
 	def tearDown(self):
 		shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors = True)
 
