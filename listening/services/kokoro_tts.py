@@ -5,6 +5,8 @@ import soundfile
 from django.conf import settings
 from kokoro_onnx import Kokoro
 
+from listening.voices import get_voice_language
+
 _engine = None
 
 def get_engine():
@@ -42,7 +44,7 @@ def generate_audio(text, output_path, voice = "af_heart", speed = 1.0):
 		text,
 		voice = voice,
 		speed = speed,
-		lang = "en-us",
+		lang = get_voice_language(voice),
 	)
 
 	soundfile.write(output_path, audio, sample_rate)

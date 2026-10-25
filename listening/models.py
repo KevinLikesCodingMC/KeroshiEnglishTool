@@ -1,5 +1,7 @@
 from django.db import models
 
+from .voices import DEFAULT_VOICE
+
 
 class TTSJob(models.Model):
 	class Status:
@@ -15,7 +17,7 @@ class TTSJob(models.Model):
 		)
 
 	text = models.TextField("文本")
-	voice = models.CharField("音色", max_length = 50, default = "af_heart")
+	voice = models.CharField("音色", max_length = 50, default = DEFAULT_VOICE)
 	speed = models.FloatField("语速", default = 1.0)
 	status = models.CharField(
 		"状态",

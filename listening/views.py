@@ -8,13 +8,21 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST, require_safe
 
 from .models import TTSJob
+from .voices import DEFAULT_VOICE, VOICE_IDS, VOICES
 
 
 BYTE_RANGE_PATTERN = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
 def index(request):
-	return render(request, "listening/index.html")
+	return render(
+		request,
+		"listening/index.html",
+		{
+			"default_voice": DEFAULT_VOICE,
+			"voices": VOICES,
+		},
+	)
 
 
 @require_POST
@@ -48,7 +56,15 @@ def create_job(request):
 			status = 400,
 		)
 
-	job = TTSJob.objects.create(text = text.strip(), speed = speed)
+	voice = data.get("voice", DEFAULT_VOICE)
+	if not isinstance(voice, str) or voice not in VOICE_IDS:
+		return JsonResponse({"error": "Please choose a valid voice."}, status = 400)
+
+	job = TTSJob.objects.create(
+		text = text.strip(),
+		voice = voice,
+		speed = speed,
+	)
 	return JsonResponse(
 		{
 			"id": job.pk,

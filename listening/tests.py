@@ -10,6 +10,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import TTSJob
+from .services.kokoro_tts import generate_audio
 
 
 TEST_MEDIA_ROOT = Path("test-media")
@@ -21,6 +22,10 @@ class ListeningApiTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, reverse("listening:job-create"))
+		self.assertContains(response, '<select id="voice"')
+		self.assertContains(response, 'value="af_heart" selected')
+		self.assertContains(response, 'value="bm_lewis"')
+		self.assertNotContains(response, "bootstrap.bundle.min.js")
 		self.assertNotContains(response, "window.location.reload()")
 
 	def test_create_job_returns_accepted_response(self):
@@ -29,6 +34,7 @@ class ListeningApiTests(TestCase):
 			data = json.dumps(
 				{
 					"text": "  Hello world  ",
+					"voice": "bf_emma",
 					"speed": 1.5,
 				},
 			),
@@ -49,7 +55,18 @@ class ListeningApiTests(TestCase):
 			},
 		)
 		self.assertEqual(job.text, "Hello world")
+		self.assertEqual(job.voice, "bf_emma")
 		self.assertEqual(job.speed, 1.5)
+
+	def test_create_job_uses_default_voice_when_omitted(self):
+		response = self.client.post(
+			reverse("listening:job-create"),
+			data = json.dumps({"text": "Hello world", "speed": 1.0}),
+			content_type = "application/json",
+		)
+
+		self.assertEqual(response.status_code, 202)
+		self.assertEqual(TTSJob.objects.get().voice, "af_heart")
 
 	def test_create_job_rejects_invalid_input(self):
 		invalid_payloads = (
@@ -57,6 +74,8 @@ class ListeningApiTests(TestCase):
 			{"text": "Hello", "speed": 0.4},
 			{"text": "Hello", "speed": 2.1},
 			{"text": "Hello", "speed": "fast"},
+			{"text": "Hello", "speed": 1.0, "voice": "unknown"},
+			{"text": "Hello", "speed": 1.0, "voice": None},
 		)
 
 		for payload in invalid_payloads:
@@ -192,3 +211,20 @@ class TTSWorkerTests(TestCase):
 		self.assertFalse(job.audio_file)
 		self.assertIsNotNone(job.started_at)
 		self.assertIsNotNone(job.completed_at)
+
+
+class KokoroTTSTests(TestCase):
+	@patch("listening.services.kokoro_tts.soundfile.write")
+	@patch("listening.services.kokoro_tts.get_engine")
+	def test_british_voice_uses_british_phonemes(self, get_engine_mock, write_mock):
+		get_engine_mock.return_value.create.return_value = (b"audio", 24000)
+
+		generate_audio("Hello world", "example.wav", voice = "bf_emma")
+
+		get_engine_mock.return_value.create.assert_called_once_with(
+			"Hello world",
+			voice = "bf_emma",
+			speed = 1.0,
+			lang = "en-gb",
+		)
+		write_mock.assert_called_once_with(Path("example.wav"), b"audio", 24000)

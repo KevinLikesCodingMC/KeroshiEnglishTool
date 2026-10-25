@@ -14,6 +14,12 @@
 			{% csrf_token %}
 			<label for="text" class="form-label">英文文本</label>
 			<textarea id="text" name="text" class="form-control mb-3" rows="6" required autofocus></textarea>
+			<label for="voice" class="form-label">音色</label>
+			<select id="voice" name="voice" class="form-select mb-3">
+				{% for voice in voices %}
+					<option value="{{ voice }}"{% if voice == default_voice %} selected{% endif %}>{{ voice }}</option>
+				{% endfor %}
+			</select>
 			<label for="speed" class="form-label">
 				语速：<span id="speed-value">1.0×</span>
 			</label>
@@ -33,6 +39,7 @@
 	<script>
 		const form = document.getElementById("tts-form");
 		const textInput = document.getElementById("text");
+		const voiceInput = document.getElementById("voice");
 		const speedInput = document.getElementById("speed");
 		const submitButton = document.getElementById("submit-button");
 		const statusMessage = document.getElementById("status-message");
@@ -103,6 +110,7 @@
 					},
 					body: JSON.stringify({
 						text: textInput.value,
+						voice: voiceInput.value,
 						speed: Number(speedInput.value),
 					}),
 				});
