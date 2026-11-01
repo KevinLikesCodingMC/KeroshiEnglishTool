@@ -10,8 +10,8 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .models import TTSJob
-from .services.kokoro_tts import generate_audio
+from listening.models import TTSJob
+from listening.services.kokoro_tts import generate_audio
 
 
 TEST_MEDIA_ROOT = Path("test-media")
