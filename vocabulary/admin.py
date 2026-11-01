@@ -12,6 +12,6 @@ class SourceDocumentAdmin(admin.ModelAdmin):
 
 @admin.register(Word)
 class WordAdmin(admin.ModelAdmin):
-	list_display = ("text", "normalized", "created_at")
+	list_display = ("text", "normalized", "count", "created_at")
 	search_fields = ("text", "normalized")
 	readonly_fields = ("normalized", "created_at")

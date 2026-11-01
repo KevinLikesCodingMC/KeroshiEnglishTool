@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
-                        verbose_name="ID",
+                          verbose_name="ID",
                     ),
                 ),
                 ("text", models.CharField(max_length=100, verbose_name="单词")),
@@ -66,6 +66,10 @@ class Migration(migrations.Migration):
                         unique=True,
                         verbose_name="标准化单词",
                     ),
+                ),
+                (
+                    "count",
+                    models.PositiveIntegerField(default=0, verbose_name="出现次数"),
                 ),
                 (
                     "created_at",

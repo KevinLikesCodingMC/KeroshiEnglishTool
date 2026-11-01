@@ -27,6 +27,7 @@ class Word(models.Model):
 		unique = True,
 		editable = False,
 	)
+	count = models.PositiveIntegerField("出现次数", default = 0)
 	created_at = models.DateTimeField("创建时间", auto_now_add = True)
 
 	class Meta:
