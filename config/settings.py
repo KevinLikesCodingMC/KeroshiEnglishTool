@@ -90,6 +90,11 @@ DATABASES = {
 	}
 }
 
+# ECDICT is an independent, read-only SQLite dictionary, not a Django database.
+ECDICT_PATH = Path(env("ECDICT_PATH", default = str(BASE_DIR / "stardict.db")))
+if not ECDICT_PATH.is_absolute():
+	ECDICT_PATH = BASE_DIR / ECDICT_PATH
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators

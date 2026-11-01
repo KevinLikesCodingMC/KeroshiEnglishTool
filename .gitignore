@@ -17,3 +17,7 @@ models/
 
 # Generated media
 media/
+
+# External ECDICT dictionary (download separately)
+stardict.db
+stardict.db-*
