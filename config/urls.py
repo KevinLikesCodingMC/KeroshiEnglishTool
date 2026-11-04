@@ -19,8 +19,10 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve
+from vocabulary.views import index
 
 urlpatterns = [
+	path("", index, name = "home"),
 	path("admin/", admin.site.urls),
 	path("listening/", include("listening.urls")),
 	path("vocabulary/", include("vocabulary.urls")),

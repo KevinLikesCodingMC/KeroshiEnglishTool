@@ -36,6 +36,16 @@ ALLOWED_HOSTS = env.list(
 	default = ["127.0.0.1", "localhost"],
 )
 
+# Nginx strips this prefix before forwarding requests to Django.
+# Leave empty when serving directly at the domain root.
+script_name = env("DJANGO_SCRIPT_NAME", default = "").strip().strip("/")
+FORCE_SCRIPT_NAME = f"/{script_name}" if script_name else None
+
+SESSION_COOKIE_NAME = "english_sessionid"
+CSRF_COOKIE_NAME = "english_csrftoken"
+SESSION_COOKIE_PATH = f"{FORCE_SCRIPT_NAME or ''}/"
+CSRF_COOKIE_PATH = SESSION_COOKIE_PATH
+
 # nginx must overwrite this header; restrict backend access to trusted proxies.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -133,10 +143,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = "/static/"
+# Use an explicit prefix: URLs may be cached before WSGI sets SCRIPT_NAME.
+STATIC_URL = f"{FORCE_SCRIPT_NAME or ''}/static/"
 STATIC_ROOT = BASE_DIR / "static"
 
-MEDIA_URL = "/media/"
+MEDIA_URL = f"{FORCE_SCRIPT_NAME or ''}/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 KOKORO_MODEL_PATH = BASE_DIR / "models" / "kokoro" / "kokoro-v1.0.onnx"

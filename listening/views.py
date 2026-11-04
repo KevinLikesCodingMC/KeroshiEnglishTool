@@ -15,7 +15,7 @@ from .voices import DEFAULT_VOICE, VOICE_IDS, VOICES
 BYTE_RANGE_PATTERN = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
-@staff_member_required(login_url = "/admin/login/")
+@staff_member_required(login_url = "admin:login")
 def index(request):
 	return render(
 		request,
@@ -27,7 +27,7 @@ def index(request):
 	)
 
 
-@staff_member_required(login_url = "/admin/login/")
+@staff_member_required(login_url = "admin:login")
 @require_POST
 def create_job(request):
 	try:
@@ -78,7 +78,7 @@ def create_job(request):
 	)
 
 
-@staff_member_required(login_url = "/admin/login/")
+@staff_member_required(login_url = "admin:login")
 @require_GET
 def job_status(request, job_id):
 	try:
@@ -138,7 +138,7 @@ def _file_chunks(file_handle, length, chunk_size = 8192):
 		file_handle.close()
 
 
-@staff_member_required(login_url = "/admin/login/")
+@staff_member_required(login_url = "admin:login")
 @require_safe
 def job_audio(request, job_id):
 	try:
