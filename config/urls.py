@@ -23,6 +23,7 @@ from django.views.static import serve
 urlpatterns = [
 	path("admin/", admin.site.urls),
 	path("listening/", include("listening.urls")),
+	path("vocabulary/", include("vocabulary.urls")),
 	re_path(
 		r"^media/(?P<path>.*)$",
 		serve,
