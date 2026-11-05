@@ -11,12 +11,13 @@ def _meaning_parts(definition):
 	return set(re.findall(r"[\u3400-\u9fff]+", definition))
 
 
-def choose_meaning_questions(batch_size = 10):
+def choose_meaning_questions(batch_size = 10, words = None):
 	entries = meaning_entries()
 	if len(entries) < 4:
 		return []
 	questions = []
-	for entry in sample(entries, min(batch_size, len(entries))):
+	targets = entries if words is None else [entry for entry in entries if entry["word"] in words]
+	for entry in sample(targets, min(batch_size, len(targets))):
 		choices = [entry]
 		parts = _meaning_parts(entry["definition"])
 		for candidate in sample(entries, len(entries)):
