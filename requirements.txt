@@ -3,3 +3,4 @@ django-environ>=0.12
 kokoro-onnx>=0.6
 soundfile>=0.13
 requests>=2.34
+openai>=2.0

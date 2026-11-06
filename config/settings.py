@@ -154,6 +154,9 @@ KOKORO_MODEL_PATH = BASE_DIR / "models" / "kokoro" / "kokoro-v1.0.onnx"
 KOKORO_VOICES_PATH = BASE_DIR / "models" / "kokoro" / "voices-v1.0.bin"
 KOKORO_CPU_THREADS = env.int("KOKORO_CPU_THREADS", default = 2)
 
+DEEPSEEK_API_KEY = env("DEEPSEEK_API_KEY", default = "")
+DEEPSEEK_MODEL = env("DEEPSEEK_MODEL", default = "deepseek-flash")
+
 if KOKORO_CPU_THREADS < 1:
 	raise ImproperlyConfigured("KOKORO_CPU_THREADS must be at least 1.")
 
