@@ -17,9 +17,14 @@ BYTE_RANGE_PATTERN = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 @staff_member_required(login_url = "admin:login")
 def index(request):
+	return render(request, "listening/index.html")
+
+
+@staff_member_required(login_url = "admin:login")
+def audio(request):
 	return render(
 		request,
-		"listening/index.html",
+		"listening/audio.html",
 		{
 			"default_voice": DEFAULT_VOICE,
 			"voices": VOICES,
