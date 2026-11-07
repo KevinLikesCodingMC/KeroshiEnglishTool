@@ -1,5 +1,15 @@
 from django.contrib import admin
-from .models import TTSJob
+from .models import ListeningJob, TTSJob
+
+
+@admin.register(ListeningJob)
+class ListeningJobAdmin(admin.ModelAdmin):
+	list_display = ("id", "status", "created_at", "completed_at")
+	list_filter = ("status",)
+	readonly_fields = ("material", "playlist", "status", "audio_file", "error_message", "created_at", "completed_at")
+
+	def has_add_permission(self, request):
+		return False
 
 
 @admin.register(TTSJob)
