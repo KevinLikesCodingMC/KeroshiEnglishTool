@@ -55,11 +55,13 @@
 		<hr class="my-4">
 		<h2 id="practice-title" class="h5"></h2>
 		<p id="playback-rule" class="text-secondary small"></p>
-		<h3 class="h6 mt-4">朗读正文</h3>
-
-		<div id="script-segments"></div>
-		<h3 class="h6 mt-4">题目</h3>
-		<div id="practice-questions"></div>
+		<details id="practice-material-details" class="border rounded p-3">
+			<summary>查看或编辑材料</summary>
+			<h3 class="h6 mt-3">朗读正文</h3>
+			<div id="script-segments"></div>
+			<h3 class="h6 mt-4">题目</h3>
+			<div id="practice-questions"></div>
+		</details>
 
 	</section>
 
@@ -95,6 +97,16 @@
 			<a id="download-audio" class="btn btn-outline-secondary mt-2" download>下载音频</a>
 		</div>
 
+	</section>
+
+	<section id="practice-answer-sheet" aria-labelledby="practice-answer-heading" hidden>
+		<hr class="my-4">
+		<h2 id="practice-answer-heading" class="h5 mb-3">3. 听力答题</h2>
+		<div id="practice-answer-options"></div>
+		<details id="practice-answer-key">
+			<summary>查看答案</summary>
+			<ol id="practice-answer-results" class="mt-2 mb-0"></ol>
+		</details>
 	</section>
 </main>
 

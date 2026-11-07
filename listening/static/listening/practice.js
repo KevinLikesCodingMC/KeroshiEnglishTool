@@ -76,6 +76,10 @@
 		});
 		const questions = document.getElementById("practice-questions");
 		questions.replaceChildren();
+		const answerOptions = document.getElementById("practice-answer-options");
+		answerOptions.replaceChildren();
+		const answerResults = document.getElementById("practice-answer-results");
+		answerResults.replaceChildren();
 		value.questions.forEach((question, index) => {
 			const group = document.createElement("div");
 			group.className = "mb-4";
@@ -91,12 +95,33 @@
 			input.value = question.text;
 			input.addEventListener("input", () => { question.text = input.value; });
 			group.append(label, input);
+
+			const choices = document.createElement("fieldset");
+			choices.className = "mb-3";
+			const legend = document.createElement("legend");
+			legend.className = "fs-6 fw-semibold mb-2";
+			legend.textContent = label.textContent;
+			choices.append(legend);
 			for (const letter of ["A", "B", "C", "D"]) {
 				const option = document.createElement("p");
 				option.className = "small mb-1";
 				option.textContent = `${letter}. ${question.options[letter]}`;
 				group.append(option);
+
+				const row = document.createElement("label");
+				row.className = "form-check d-block py-1";
+				const radio = document.createElement("input");
+				radio.className = "form-check-input";
+				radio.type = "radio";
+				radio.name = `practice-choice-${index}`;
+				radio.value = letter;
+				row.append(radio, option.textContent);
+				choices.append(row);
 			}
+			answerOptions.append(choices);
+			const correctOption = document.createElement("li");
+			correctOption.textContent = question.answer;
+			answerResults.append(correctOption);
 			const details = document.createElement("details");
 			details.className = "small mt-2";
 			const summary = document.createElement("summary");
@@ -108,7 +133,10 @@
 			group.append(details);
 			questions.append(group);
 		});
+		document.getElementById("practice-material-details").open = false;
+		document.getElementById("practice-answer-key").open = false;
 		document.getElementById("practice-preview").hidden = false;
+		document.getElementById("practice-answer-sheet").hidden = false;
 		audioSection.hidden = false;
 		settings.disabled = false;
 	}
