@@ -7,12 +7,49 @@ from django.http import FileResponse, HttpResponse, JsonResponse, StreamingHttpR
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST, require_safe
+from openai import APIError, APITimeoutError
 
 from .models import TTSJob
 from .voices import DEFAULT_VOICE, VOICE_IDS, VOICES
+from .services.materials import MaterialGenerationError, generate_material
 
 
 BYTE_RANGE_PATTERN = re.compile(r"^bytes=(\d*)-(\d*)$")
+
+
+@staff_member_required(login_url = "admin:login")
+@require_GET
+def materials(request):
+	return render(request, "listening/materials.html")
+
+
+@staff_member_required(login_url = "admin:login")
+@require_POST
+def create_material(request):
+	try:
+		data = json.loads(request.body)
+	except (json.JSONDecodeError, UnicodeDecodeError):
+		return JsonResponse({"error": "请求必须是有效 JSON。"}, status = 400)
+	if not isinstance(data, dict):
+		return JsonResponse({"error": "请求必须是 JSON 对象。"}, status = 400)
+	topic = data.get("topic", "")
+	level = data.get("level", "B1")
+	word_count = data.get("word_count", 200)
+	if not isinstance(topic, str) or not 1 <= len(topic.strip()) <= 500:
+		return JsonResponse({"error": "请输入 1–500 字的主题。"}, status = 400)
+	if not isinstance(level, str) or level not in ("A1", "A2", "B1", "B2", "C1", "C2"):
+		return JsonResponse({"error": "请选择有效的难度。"}, status = 400)
+	if type(word_count) is not int or not 50 <= word_count <= 800:
+		return JsonResponse({"error": "篇幅须为 50–800 之间的整数。"}, status = 400)
+	try:
+		text = generate_material(topic = topic.strip(), level = level, word_count = word_count)
+	except MaterialGenerationError as error:
+		return JsonResponse({"error": str(error)}, status = 503)
+	except APITimeoutError:
+		return JsonResponse({"error": "生成超时，请稍后重试。"}, status = 504)
+	except APIError:
+		return JsonResponse({"error": "DeepSeek 请求失败，请检查服务端 API Key、模型配置或稍后重试。"}, status = 502)
+	return JsonResponse({"text": text})
 
 
 @staff_member_required(login_url = "admin:login")
@@ -154,8 +191,12 @@ def job_audio(request, job_id):
 	if not job.audio_file:
 		return JsonResponse({"error": "Audio is not ready."}, status = 404)
 
-	file_size = job.audio_file.size
-	content_type = mimetypes.guess_type(job.audio_file.name)[0] or "application/octet-stream"
+	return audio_response(request, job.audio_file)
+
+
+def audio_response(request, audio_file):
+	file_size = audio_file.size
+	content_type = mimetypes.guess_type(audio_file.name)[0] or "application/octet-stream"
 	range_header = request.headers.get("Range")
 
 	if not range_header:
@@ -164,7 +205,7 @@ def job_audio(request, job_id):
 			response["Content-Length"] = file_size
 		else:
 			response = FileResponse(
-				job.audio_file.open("rb"),
+				audio_file.open("rb"),
 				content_type = content_type,
 			)
 		response["Accept-Ranges"] = "bytes"
@@ -181,7 +222,7 @@ def job_audio(request, job_id):
 	if request.method == "HEAD":
 		response = HttpResponse(status = 206, content_type = content_type)
 	else:
-		file_handle = job.audio_file.open("rb")
+		file_handle = audio_file.open("rb")
 		file_handle.seek(start)
 		response = StreamingHttpResponse(
 			_file_chunks(file_handle, length),
