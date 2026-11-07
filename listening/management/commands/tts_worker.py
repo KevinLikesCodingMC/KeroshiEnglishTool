@@ -6,8 +6,9 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from listening.models import TTSJob
+from listening.models import ListeningJob, TTSJob
 from listening.services.kokoro_tts import generate_audio
+from listening.services.listening_audio import finalize_ready_jobs
 
 
 class Command(BaseCommand):
@@ -38,12 +39,13 @@ class Command(BaseCommand):
 			self.stdout.write("TTS worker stopped.")
 
 	def _process_next(self, show_empty_message = True):
+		finalized = finalize_ready_jobs()
 		job = self._claim_job()
 
 		if job is None:
 			if show_empty_message:
 				self.stdout.write("No queued TTS jobs.")
-			return False
+			return finalized
 
 		audio_name = f"tts/{job.pk}.wav"
 		output_path = Path(settings.MEDIA_ROOT) / audio_name
@@ -63,6 +65,7 @@ class Command(BaseCommand):
 				update_fields = ["status", "error_message", "completed_at"],
 			)
 			self.stderr.write(self.style.ERROR(f"TTS job #{job.pk} failed: {error}"))
+			finalize_ready_jobs()
 			return True
 
 		job.status = TTSJob.Status.COMPLETED
@@ -78,6 +81,7 @@ class Command(BaseCommand):
 			],
 		)
 		self.stdout.write(self.style.SUCCESS(f"TTS job #{job.pk} completed."))
+		finalize_ready_jobs()
 		return True
 
 	def _claim_job(self):
@@ -85,13 +89,18 @@ class Command(BaseCommand):
 			job = (
 				TTSJob.objects.select_for_update()
 				.filter(status = TTSJob.Status.QUEUED)
+				.exclude(listening_job__status = ListeningJob.Status.FAILED)
 				.first()
 			)
 
 			if job is None:
 				return None
 
+			started_at = timezone.now()
+			if not TTSJob.objects.filter(pk = job.pk, status = TTSJob.Status.QUEUED).update(
+				status = TTSJob.Status.PROCESSING, started_at = started_at,
+			):
+				return None
 			job.status = TTSJob.Status.PROCESSING
-			job.started_at = timezone.now()
-			job.save(update_fields = ["status", "started_at"])
+			job.started_at = started_at
 			return job
